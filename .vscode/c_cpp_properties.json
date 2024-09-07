@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "name": "linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/home/sergio/Descargas/embebidos 2/tiva_2/inc",
+                "/home/sergio/Descargas/embebidos 2/tiva_2/driverlib",
+                "/usr/include",  // Asegúrate de que esta línea esté presente
+                "/usr/lib/gcc/x86_64-linux-gnu/11/include" // Ruta a encabezados de GCC
+            ],
+            "defines": [
+                "PART_TM4C1294NCPDT"
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}
