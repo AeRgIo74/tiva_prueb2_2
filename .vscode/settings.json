@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "stdio.h": "c",
-        "stdint.h": "c"
+        "stdint.h": "c",
+        "interrupt.h": "c",
+        "rom_map.h": "c"
     }
 }

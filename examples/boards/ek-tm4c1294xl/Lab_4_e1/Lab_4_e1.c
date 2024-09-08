@@ -19,74 +19,53 @@
 //
 // System clock rate in Hz.
 //
-//****************************************************************************
+//*****************************************************************************
 uint32_t g_ui32SysClock;
 
 //*****************************************************************************
 //
-// Flags that contain the current value of the interrupt indicator.
+// Counter for the timer load value.
 //
 //*****************************************************************************
-uint32_t g_ui32Flags;
-
-//*****************************************************************************
-//
-// The error routine that is called if the driver library encounters an error.
-//
-//*****************************************************************************
-#ifdef DEBUG
-void
-__error__(char *pcFilename, uint32_t ui32Line)
-{
-}
-#endif
+uint32_t ui32TimerSeconds = 1;  // Inicialmente 1 segundo
 
 //*****************************************************************************
 //
 // The interrupt handler for the first timer interrupt.
 //
 //*****************************************************************************
-void
-Timer0IntHandler(void)
+void Timer0IntHandler(void)
 {
     //
     // Clear the timer interrupt.
     //
-    MAP_TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
+    TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
 
-    //
-    // Toggle the flag for the first timer.
-    //
-    HWREGBITW(&g_ui32Flags, 0) ^= 1;
+    // Leer el estado actual del pin PN1.
+    uint8_t ui8LEDState = GPIOPinRead(GPIO_PORTN_BASE, GPIO_PIN_1);
 
-    //
-    // Use the flags to Toggle the LED for this timer
-    //
-    GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0, g_ui32Flags);
-}
+    // Alternar el estado del LED (si está encendido, apagarlo; si está apagado, encenderlo).
+    if(ui8LEDState)
+    {
+        GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1, 0);  // Apagar LED
+        if (ui32TimerSeconds < 5)
+        {
+            ui32TimerSeconds = ui32TimerSeconds + 1;  // Aumentar el contador
+        }
+        else
+        {
+            ui32TimerSeconds = 1;  // Reiniciar el contador a 1 segundo
+        }
+    }
+    else
+    {
+        GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1, GPIO_PIN_1);  // Encender LED
+    }
 
-//*****************************************************************************
-//
-// The interrupt handler for the second timer interrupt.
-//
-//*****************************************************************************
-void
-Timer1IntHandler(void)
-{
-    //
-    // Clear the timer interrupt.
-    //
-    MAP_TimerIntClear(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
+    // Incrementar el tiempo de carga hasta un máximo de 5 segundos
 
-    //
-    // Toggle the flag for the second timer.
-    //
-    HWREGBITW(&g_ui32Flags, 1) ^= 1;
-
-    //
-    // Use the flags to Toggle the LED for this timer
-    //
-    GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1, g_ui32Flags);
+    // Reconfigurar el tiempo de carga del temporizador con el nuevo valor
+    TimerLoadSet(TIMER0_BASE, TIMER_A, g_ui32SysClock * ui32TimerSeconds);
 }
 
 //*****************************************************************************
@@ -95,15 +74,14 @@ Timer1IntHandler(void)
 // periodic interrupts.
 //
 //*****************************************************************************
-int
-main(void)
+int main(void)
 {
     //
     // Run from the PLL at 120 MHz.
     // Note: SYSCTL_CFG_VCO_240 is a new setting provided in TivaWare 2.2.x and
     // later to better reflect the actual VCO speed due to SYSCTL#22.
     //
-    g_ui32SysClock = MAP_SysCtlClockFreqSet((SYSCTL_XTAL_25MHZ |
+    g_ui32SysClock = SysCtlClockFreqSet((SYSCTL_XTAL_25MHZ |
                                              SYSCTL_OSC_MAIN |
                                              SYSCTL_USE_PLL |
                                              SYSCTL_CFG_VCO_240), 120000000);
@@ -111,45 +89,40 @@ main(void)
     //
     // Enable the GPIO port that is used for the on-board LEDs.
     //
-    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION);
 
     //
     // Enable the GPIO pins for the LEDs (PN0 & PN1).
     //
-    MAP_GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+    GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_1);
 
     //
     // Enable the peripherals used by this example.
     //
-    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
-    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
-
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
     //
     // Enable processor interrupts.
     //
-    MAP_IntMasterEnable();
+    IntMasterEnable();
 
     //
-    // Configure the two 32-bit periodic timers.
+    // Configure the 32-bit periodic timer.
     //
-    MAP_TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
-    MAP_TimerConfigure(TIMER1_BASE, TIMER_CFG_PERIODIC);
-    MAP_TimerLoadSet(TIMER0_BASE, TIMER_A, g_ui32SysClock);
-    MAP_TimerLoadSet(TIMER1_BASE, TIMER_A, g_ui32SysClock / 2);
+    TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
+    
+    // Configurar el temporizador inicialmente para 1 segundo
+    TimerLoadSet(TIMER0_BASE, TIMER_A, g_ui32SysClock * ui32TimerSeconds);
 
     //
     // Setup the interrupts for the timer timeouts.
     //
-    MAP_IntEnable(INT_TIMER0A);
-    MAP_IntEnable(INT_TIMER1A);
-    MAP_TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
-    MAP_TimerIntEnable(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
+    IntEnable(INT_TIMER0A);
+    TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
 
     //
     // Enable the timers.
     //
-    MAP_TimerEnable(TIMER0_BASE, TIMER_A);
-    MAP_TimerEnable(TIMER1_BASE, TIMER_A);
+    TimerEnable(TIMER0_BASE, TIMER_A);
 
     //
     // Loop forever while the timers run.
