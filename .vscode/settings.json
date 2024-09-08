@@ -3,6 +3,8 @@
         "stdio.h": "c",
         "stdint.h": "c",
         "interrupt.h": "c",
-        "rom_map.h": "c"
+        "rom_map.h": "c",
+        "uart.h": "c",
+        "debug.h": "c"
     }
 }

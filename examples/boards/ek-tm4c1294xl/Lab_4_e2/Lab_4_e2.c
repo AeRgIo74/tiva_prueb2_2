@@ -39,6 +39,16 @@ uint32_t contador = 0;
 void Timer0IntHandler(void)
 {
     TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
+
+    if (GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_0) == 0) { // Interruptor PJ0 está presionado
+        ui32TimerSeconds ++;
+        if (ui32TimerSeconds > 5){ui32TimerSeconds=5;}
+    }
+
+    if (GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_1) == 0) { // Interruptor PJ1 está presionado
+        ui32TimerSeconds --;
+        if (ui32TimerSeconds < 1){ui32TimerSeconds=1;}
+    }
     contador++;
     if(contador > 4) {
         contador = 0;
@@ -76,7 +86,6 @@ void Timer0IntHandler(void)
             GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0, GPIO_PIN_0);
             break;
         }
-
 }
 
 //*****************************************************************************
@@ -87,6 +96,7 @@ void Timer0IntHandler(void)
 //*****************************************************************************
 int main(void)
 {
+    
     //
     // Run from the PLL at 120 MHz.
     // Note: SYSCTL_CFG_VCO_240 is a new setting provided in TivaWare 2.2.x and
@@ -102,12 +112,19 @@ int main(void)
     //
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
-
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOJ);
     //
     // Enable the GPIO pins for the LEDs (PN0 & PN1).
     //
     GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_1|GPIO_PIN_0);
     GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_4|GPIO_PIN_0);
+
+    // Configurar PJ como entrada (interruptores)
+    GPIOPinTypeGPIOInput(GPIO_PORTJ_BASE, GPIO_PIN_1);
+    GPIOPinTypeGPIOInput(GPIO_PORTJ_BASE, GPIO_PIN_0);
+    // Habilitar resistencia pull-up en PJ1 y PJ0
+    GPIOPadConfigSet(GPIO_PORTJ_BASE, GPIO_PIN_1, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
+    GPIOPadConfigSet(GPIO_PORTJ_BASE, GPIO_PIN_0, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
 
     //
     // Enable the peripherals used by this example.
@@ -123,8 +140,9 @@ int main(void)
     //
     TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
     
-    // Configurar el temporizador inicialmente para 1 segundo
-    TimerLoadSet(TIMER0_BASE, TIMER_A, g_ui32SysClock );
+    // Reconfigurar el tiempo de carga del temporizador con el nuevo valor
+    TimerLoadSet(TIMER0_BASE, TIMER_A, g_ui32SysClock * ui32TimerSeconds);
+
 
     //
     // Setup the interrupts for the timer timeouts.
