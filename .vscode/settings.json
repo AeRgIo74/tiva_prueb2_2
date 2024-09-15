@@ -5,6 +5,8 @@
         "interrupt.h": "c",
         "rom_map.h": "c",
         "uart.h": "c",
-        "debug.h": "c"
+        "debug.h": "c",
+        "pin_map.h": "c",
+        "gpio.h": "c"
     }
 }
