@@ -82,14 +82,14 @@ main(void)
         // Si el botón en PJ0 está presionado (estado bajo), enviar "hola"
         if (GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_0) == 0)
         {
-            UARTSend((uint8_t *)"hola\r\n", 6);
+            UARTSend((uint8_t *)"motor1\r\n", 6);
             SysCtlDelay(g_ui32SysClock / 10);  // Retardo para evitar múltiples lecturas
         }
 
         // Si el botón en PJ1 está presionado (estado bajo), enviar "mundo"
         if (GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_1) == 0)
         {
-            UARTSend((uint8_t *)"mundo\r\n", 7);
+            UARTSend((uint8_t *)"motor2\r\n", 7);
             SysCtlDelay(g_ui32SysClock / 10);  // Retardo para evitar múltiples lecturas
         }
     }
