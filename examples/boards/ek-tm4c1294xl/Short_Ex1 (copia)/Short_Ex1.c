@@ -42,12 +42,12 @@ main(void)
     // Enable the GPIO port that is used for the on-board LED.
     //ON para los puertos N y OF para los puertos F
     //
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION);
 
     //
     // Check if the peripheral access is enabled.
     //
-    while(!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOC))
+    while(!SysCtlPeripheralReady(SYSCTL_PERIPH_GPION))
     {
     }
 
@@ -55,7 +55,7 @@ main(void)
     // Enable the GPIO pin for the LED (PN0).  Set the direction as output, and
     // enable the GPIO pin for digital function.
     //
-    GPIOPinTypeGPIOOutput(GPIO_PORTC_BASE, GPIO_PIN_6);
+    GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_1 | GPIO_PIN_0);
 
     //
     // Loop forever.
@@ -65,8 +65,8 @@ main(void)
         //
         // Turn on the LED.
         //
-        // GPIOPinWrite(GPIO_PORTC_BASE, GPIO_PIN_6, 0);
-        GPIOPinWrite(GPIO_PORTC_BASE, GPIO_PIN_6, GPIO_PIN_6);
+        GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1, 0);
+        GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0, GPIO_PIN_0);
         //
         // Delay for a bit.
         //
@@ -77,8 +77,8 @@ main(void)
         //
         // Turn off the LED.
         //
-        GPIOPinWrite(GPIO_PORTC_BASE, GPIO_PIN_6, 0);
-        //GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0, GPIO_PIN_0);
+        GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1, GPIO_PIN_1);
+        GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0, GPIO_PIN_0);
 
         //
         // Delay for a bit.
@@ -86,10 +86,10 @@ main(void)
         for(ui32Loop = 0; ui32Loop < 1000000; ui32Loop++)
         {
         }
-        // GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1, 0);
-        // GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0, 0);
-        // for(ui32Loop = 0; ui32Loop < 1000000; ui32Loop++)
-        // {
-        // }
+        GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1, 0);
+        GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0, 0);
+        for(ui32Loop = 0; ui32Loop < 1000000; ui32Loop++)
+        {
+        }
     }
 }
