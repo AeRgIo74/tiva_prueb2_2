@@ -105,7 +105,6 @@ int main(void)
             GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_4, GPIO_PIN_4);
             GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0, GPIO_PIN_0);
             break;
-            break;
         }
 
     }
