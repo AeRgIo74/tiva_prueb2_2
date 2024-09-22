@@ -7,6 +7,10 @@
         "uart.h": "c",
         "debug.h": "c",
         "pin_map.h": "c",
-        "gpio.h": "c"
+        "gpio.h": "c",
+        "hw_memmap.h": "c",
+        "sysctl.h": "c",
+        "string.h": "c",
+        "uartstdio.h": "c"
     }
 }
