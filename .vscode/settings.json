@@ -11,6 +11,7 @@
         "hw_memmap.h": "c",
         "sysctl.h": "c",
         "string.h": "c",
-        "uartstdio.h": "c"
+        "uartstdio.h": "c",
+        "stdlib.h": "c"
     }
 }
