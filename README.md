@@ -1,1 +1,2 @@
-/usr/local/bin/tiva.sh
+/home/sergio/bin/tiva.sh
+
