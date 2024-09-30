@@ -41,7 +41,7 @@ __error__(char *pcFilename, uint32_t ui32Line)
 char buffer[BUFFER_SIZE];
 uint32_t bufferIndex = 0;
 char receivedChar;
-uint32_t contador = 0;
+uint32_t contador;
 
 void UARTIntHandler(void) {
     uint32_t ui32Status;
