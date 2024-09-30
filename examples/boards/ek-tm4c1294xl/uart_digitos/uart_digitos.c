@@ -62,7 +62,6 @@ void UARTIntHandler(void) {
             
             // Si se recibe un salto de línea, convertir a entero
             if (isdigit(receivedChar)) {
-                UARTCharPutNonBlocking(UART0_BASE, contador);
                 // Convertir la cadena a entero usando atoi
                 contador = contador * 10 + (receivedChar - '0'); 
             }
