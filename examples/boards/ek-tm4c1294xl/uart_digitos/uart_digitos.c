@@ -17,7 +17,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <stdlib.h>  // Incluye stdlib.h para atoi
+#include <stdlib.h>  
 
 //*****************************************************************************
 // System clock rate in Hz.
