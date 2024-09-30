@@ -1,0 +1,21 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Tiva",
+            "type": "shell",
+            "command": "/usr/local/bin/tiva.sh", // Cambia esta ruta si es necesario
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [] // No usamos problemMatcher en este caso
+        }
+    ]
+}

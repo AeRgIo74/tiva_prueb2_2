@@ -19,29 +19,13 @@
 #include <ctype.h>
 #include <stdlib.h>
 
+///*****************************************************************************
 // System clock rate in Hz.
-//
-//****************************************************************************
+//*****************************************************************************
 uint32_t g_ui32SysClock;
 
 //*****************************************************************************
-//
-// Flags that contain the current value of the interrupt indicator as displayed
-// on the UART.
-//
-//*****************************************************************************
-
-uint32_t tiempo = 1;
-uint32_t contador2[100];
-uint32_t contador;
-uint32_t g_ui32Flags;
-char receivedData[7] = {0};  // Para almacenar la palabra "buzzer"
-static uint8_t index = 0;  // Índice para almacenar los caracteres recibidos
-
-//*****************************************************************************
-//
 // The error routine that is called if the driver library encounters an error.
-//
 //*****************************************************************************
 #ifdef DEBUG
 void
@@ -51,17 +35,66 @@ __error__(char *pcFilename, uint32_t ui32Line)
 #endif
 
 //*****************************************************************************
+// The UART interrupt handler.
+//*****************************************************************************
+#define BUFFER_SIZE 128
+char buffer[BUFFER_SIZE];
+uint32_t bufferIndex = 0;
+char receivedChar;
+uint32_t contador = 0;
+
+void UARTIntHandler(void) {
+    uint32_t ui32Status;
+    ui32Status = UARTIntStatus(UART0_BASE, true);
+    UARTIntClear(UART0_BASE, ui32Status);
+
+    // Reiniciar el índice del buffer
+    bufferIndex = 0;
+    memset(buffer, 0, BUFFER_SIZE);  // Limpiar el buffer
+    contador = 0;
+    while (UARTCharsAvail(UART0_BASE)) {
+        receivedChar = UARTCharGetNonBlocking(UART0_BASE);
+        
+        // Solo almacenar si hay espacio en el buffer
+        if (bufferIndex < BUFFER_SIZE - 1) {
+            buffer[bufferIndex++] = receivedChar; // Almacena el carácter
+            buffer[bufferIndex] = '\0'; // Asegúrate de que el string esté terminado
+            
+            // Si se recibe un salto de línea, convertir a entero
+            if (isdigit(receivedChar)) {
+                // Convertir la cadena a entero usando atoi
+                contador = contador * 10 + (receivedChar - '0'); 
+            }
+        }
+        
+        UARTCharPutNonBlocking(UART0_BASE, receivedChar);
+    }
+}
+
+
+//*****************************************************************************
+// Send a string to the UART.
+//*****************************************************************************
+void UARTSend(const uint8_t *pui8Buffer, uint32_t ui32Count) {
+    // Loop while there are more characters to send.
+    while(ui32Count--) {
+        // Write the next character to the UART.
+        UARTCharPutNonBlocking(UART0_BASE, *pui8Buffer++);
+    }
+}
+
+
+
+
+
+uint32_t tiempo = 1;
+uint32_t g_ui32Flags;
+
+//*****************************************************************************
 //
 // The interrupt handler for the first timer interrupt.
 //
 //*****************************************************************************
-void UARTSend(const uint8_t *pui8Buffer, uint32_t ui32Count)
-{
-    while (ui32Count--)
-    {
-        UARTCharPutNonBlocking(UART0_BASE, *pui8Buffer++);
-    }
-}
 void Timer0IntHandler(void)
 {
     char cOne, cTwo;
@@ -71,9 +104,25 @@ void Timer0IntHandler(void)
     TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
     HWREGBITW(&g_ui32Flags, 0) ^= 1;
     // Encender o apagar los LEDs según el valor del contador usando desplazamiento de bits
-    if(contador2 > 20) {
+    if(contador > 20) {
         GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_4, GPIO_PIN_4 ); // Bit 2
         GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0, GPIO_PIN_0 ); // Bit 2
+        GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0, 0 ); // Bit 2
+        GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1, 0 ); // Bit 2
+    }
+    else if (contador <= 20 && contador > 15)
+    {
+        GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_4, GPIO_PIN_4 ); // Bit 2
+        GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0, 0 ); // Bit 2
+        GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0, 0 ); // Bit 2
+        GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1, 0 ); // Bit 2
+    }
+    else if (contador <= 15)
+    {
+        GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_4, GPIO_PIN_4 ); // Bit 2
+        GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0, GPIO_PIN_0 ); // Bit 2
+        GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0, GPIO_PIN_0 ); // Bit 2
+        GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1, GPIO_PIN_1 ); // Bit 2
     }
     //
     // Update the interrupt status.
@@ -82,7 +131,7 @@ void Timer0IntHandler(void)
     cOne = HWREGBITW(&g_ui32Flags, 0) ? '1' : '0';
     cTwo = HWREGBITW(&g_ui32Flags, 1) ? '1' : '0';
     // Agrega un debug para ver el estado de las variables
-    UARTprintf("cOne: %d, cTwo: %d, time: %d, contador: %d\n", cOne, cTwo, tiempo, contador2);
+    UARTprintf("cOne: %d, cTwo: %d, time: %d, contador: %d\n", cOne, cTwo, tiempo, contador);
 
 
     TimerLoadSet(TIMER0_BASE, TIMER_A, (uint32_t)(g_ui32SysClock * tiempo));
@@ -125,58 +174,7 @@ void Timer1IntHandler(void)
     UARTprintf("cOne: %d, cTwo: %d\n", cOne, cTwo);
     IntMasterEnable();
 }
-#define MAX_BUFFER_SIZE 10
 
-// Variables globales
-char uartBuffer[MAX_BUFFER_SIZE];  // Buffer para almacenar la cadena recibida
-uint8_t bufferIndex = 0;           // Índice para controlar el buffer
-
-
-void UARTIntHandler(void)
-{
-    uint32_t ui32Status;
-
-    // Obtener el estado de la interrupción de UART
-    ui32Status = UARTIntStatus(UART0_BASE, true);
-    // Limpiar la interrupción
-    UARTIntClear(UART0_BASE, ui32Status);
-
-    // Mientras haya datos disponibles en UART
-    while (UARTCharsAvail(UART0_BASE))
-    {
-        char receivedChar = UARTCharGetNonBlocking(UART0_BASE);  // Leer carácter recibido
-
-        // Ignorar caracteres de nueva línea y retorno de carro
-        if (receivedChar == '\n' || receivedChar == '\r')
-        {
-            continue;
-        }
-
-        UARTCharPutNonBlocking(UART0_BASE, receivedChar);  // Eco del carácter recibido
-
-        // Guardar el carácter recibido en el buffer
-        if (index < 6)  // Asegurarse de no superar el tamaño del buffer
-        {
-            receivedData[index] = receivedChar;
-            index++;
-        }
-
-        // Si se ha recibido la palabra "buzzer"
-        if (index == 6 && strncmp(receivedData, "buzzer", 6) == 0)
-        {
-            contador = 1;
-            index = 0;  // Reiniciar el índice para recibir la siguiente palabra
-            memset(receivedData, 0, sizeof(receivedData));  // Limpiar el buffer
-        }
-
-        // Reiniciar el índice si se sobrepasa el tamaño del buffer
-        if (index >= 6)
-        {
-            index = 0;
-            memset(receivedData, 0, sizeof(receivedData));  // Limpiar el buffer
-        }
-    }
-}
 
 
 
@@ -249,6 +247,10 @@ int main(void)
                                              SYSCTL_CFG_VCO_240), 120000000);
 
     //
+    //
+    // Enable processor interrupts.
+    //
+    IntMasterEnable();
     // Initialize the UART and write status.
     //
     ConfigureUART();
@@ -263,10 +265,7 @@ int main(void)
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
 
-    //
-    // Enable processor interrupts.
-    //
-    IntMasterEnable();
+    
 
     //
     // Configure the two 32-bit periodic timers.
