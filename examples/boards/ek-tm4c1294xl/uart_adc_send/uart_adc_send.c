@@ -39,6 +39,21 @@ void UARTSend(const uint8_t *pui8Buffer, uint32_t ui32Count) {
     }
 }
 
+// Configuración del ADC y sus pines
+void ConfigureADC(void) {
+    // Habilitar periféricos
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0); // Habilitar ADC0
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE); // Habilitar GPIOE
+
+    // Configurar el pin PE3 como entrada ADC (Canal 0)
+    GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_3); // Configura PE3 como entrada del ADC
+    // Configurar el ADC 
+    ADCSequenceConfigure(ADC0_BASE, 0, ADC_TRIGGER_PROCESSOR, 0); // Secuencia 0
+    ADCSequenceStepConfigure(ADC0_BASE, 0, 0, ADC_CTL_IE | ADC_CTL_END | ADC_CTL_CH0); // Canal 0
+    ADCSequenceEnable(ADC0_BASE, 0); // Habilitar secuencia 0
+    ADCIntClear(ADC0_BASE, 0); // Limpiar interrupción
+}
+
 // Función para convertir un número entero en una cadena de caracteres
 void IntToChar(uint32_t value, char *buffer) {
     int i = 0;
@@ -83,23 +98,13 @@ int main(void) {
     // Habilitar interrupciones globales
     IntMasterEnable();
 
-    // Habilitar periféricos
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0); // Habilitar ADC0
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0); // Habilitar Timer0
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE); // Habilitar GPIOE
-
-    // Configurar el pin PE3 como entrada ADC (Canal 0)
-    GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_3); // Configura PE3 como entrada del ADC
+    ConfigureADC();
 
     // Configurar UART
     ConfigureUART();
     UARTprintf("Iniciando la lectura del ADC con timer...\n\n");
 
-    // Configurar el ADC con disparo por Timer
-    ADCSequenceConfigure(ADC0_BASE, 0, ADC_TRIGGER_PROCESSOR, 0); // Secuencia 0
-    ADCSequenceStepConfigure(ADC0_BASE, 0, 0, ADC_CTL_IE | ADC_CTL_END | ADC_CTL_CH0); // Canal 0
-    ADCSequenceEnable(ADC0_BASE, 0); // Habilitar secuencia 0
-    ADCIntClear(ADC0_BASE, 0); // Limpiar interrupción
+    
 
     char buffer[10];  // Buffer para almacenar la conversión del número a cadena
 
