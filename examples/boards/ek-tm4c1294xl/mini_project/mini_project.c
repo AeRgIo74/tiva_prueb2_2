@@ -272,7 +272,7 @@ int main(void)
     //
     TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
     TimerConfigure(TIMER1_BASE, TIMER_CFG_PERIODIC);
-    TimerLoadSet(TIMER0_BASE, TIMER_A, g_ui32SysClock);
+    TimerLoadSet(TIMER0_BASE, TIMER_A, g_ui32SysClock *0.2);
     TimerLoadSet(TIMER1_BASE, TIMER_A, g_ui32SysClock *0.2);
 
     //
