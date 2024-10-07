@@ -1,4 +1,4 @@
-gcc/interrupt.o: interrupt.c \
+gcc/ultrasonico.o: ultrasonico.c \
  /usr/lib/gcc/arm-none-eabi/7.3.1/include/stdint.h \
  /usr/arm-none-eabi/include/stdint.h \
  /usr/arm-none-eabi/include/machine/_default_types.h \
@@ -7,6 +7,8 @@ gcc/interrupt.o: interrupt.c \
  /usr/arm-none-eabi/include/sys/_intsup.h \
  /usr/arm-none-eabi/include/sys/_stdint.h \
  /usr/lib/gcc/arm-none-eabi/7.3.1/include/stdbool.h \
- ../../../../inc/hw_memmap.h ../../../../driverlib/debug.h \
- ../../../../driverlib/gpio.h ../../../../driverlib/sysctl.h \
- ../../../../driverlib/interrupt.h ../../../../inc/hw_ints.h
+ ../../../../inc/hw_memmap.h ../../../../inc/hw_types.h \
+ ../../../../driverlib/gpio.h ../../../../driverlib/pin_map.h \
+ ../../../../driverlib/sysctl.h ../../../../driverlib/timer.h \
+ ../../../../driverlib/interrupt.h ../../../../utils/uartstdio.h \
+ /usr/lib/gcc/arm-none-eabi/7.3.1/include/stdarg.h

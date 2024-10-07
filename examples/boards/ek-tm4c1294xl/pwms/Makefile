@@ -1,6 +1,6 @@
 #******************************************************************************
 #
-# Makefile - Rules for building the interrupt example.
+# Makefile - Rules for building the PWM Inverted Output example.
 #
 # Copyright (c) 2013-2020 Texas Instruments Incorporated.  All rights reserved.
 # Software License Agreement
@@ -46,15 +46,14 @@ VPATH+=../../../../utils
 #
 # Where to find header files that do not live in the source directory.
 #
-IPATH=.
-IPATH+=..
+IPATH=..
 IPATH+=../../../..
 
 #
-# The default rule, which causes the interrupt example to be built.
+# The default rule, which causes the PWM Inverted Output example to be built.
 #
 all: ${COMPILER}
-all: ${COMPILER}/interrupt.axf
+all: ${COMPILER}/pwms.axf
 
 #
 # The rule to clean out all the build products.
@@ -69,16 +68,16 @@ ${COMPILER}:
 	@mkdir -p ${COMPILER}
 
 #
-# Rules for building the interrupt example.
+# Rules for building the PWM Inverted Output example.
 #
-${COMPILER}/interrupt.axf: ${COMPILER}/interrupt.o
-${COMPILER}/interrupt.axf: ${COMPILER}/pinout.o
-${COMPILER}/interrupt.axf: ${COMPILER}/startup_${COMPILER}.o
-${COMPILER}/interrupt.axf: ${COMPILER}/uartstdio.o
-${COMPILER}/interrupt.axf: ${ROOT}/driverlib/${COMPILER}/libdriver.a
-${COMPILER}/interrupt.axf: interrupt.ld
-SCATTERgcc_interrupt=interrupt.ld
-ENTRY_interrupt=ResetISR
+${COMPILER}/pwms.axf: ${COMPILER}/pinout.o
+${COMPILER}/pwms.axf: ${COMPILER}/pwms.o
+${COMPILER}/pwms.axf: ${COMPILER}/startup_${COMPILER}.o
+${COMPILER}/pwms.axf: ${COMPILER}/uartstdio.o
+${COMPILER}/pwms.axf: ${ROOT}/driverlib/${COMPILER}/libdriver.a
+${COMPILER}/pwms.axf: pwms.ld
+SCATTERgcc_pwms=pwms.ld
+ENTRY_pwms=ResetISR
 CFLAGSgcc=-DTARGET_IS_TM4C129_RA2
 
 #

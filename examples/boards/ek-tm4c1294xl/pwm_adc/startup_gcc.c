@@ -38,15 +38,6 @@ static void IntDefaultHandler(void);
 
 //*****************************************************************************
 //
-// External declarations for the interrupt handlers used by the application.
-//
-//*****************************************************************************
-extern void IntGPIOa(void);
-extern void IntGPIOb(void);
-extern void IntGPIOc(void);
-
-//*****************************************************************************
-//
 // The entry point for the application.
 //
 //*****************************************************************************
@@ -85,9 +76,9 @@ void (* const g_pfnVectors[])(void) =
     0,                                      // Reserved
     IntDefaultHandler,                      // The PendSV handler
     IntDefaultHandler,                      // The SysTick handler
-    IntGPIOa,                               // GPIO Port A
-    IntGPIOb,                               // GPIO Port B
-    IntGPIOc,                               // GPIO Port C
+    IntDefaultHandler,                      // GPIO Port A
+    IntDefaultHandler,                      // GPIO Port B
+    IntDefaultHandler,                      // GPIO Port C
     IntDefaultHandler,                      // GPIO Port D
     IntDefaultHandler,                      // GPIO Port E
     IntDefaultHandler,                      // UART0 Rx and Tx

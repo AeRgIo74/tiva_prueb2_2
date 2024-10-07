@@ -12,6 +12,8 @@
         "sysctl.h": "c",
         "string.h": "c",
         "uartstdio.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "iterator": "c",
+        "ctype.h": "c"
     }
 }
