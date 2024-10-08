@@ -117,6 +117,7 @@ void Timer1IntHandler(void)
     if (distance <= 7){
         // Alternar el estado del LED
         ledState = !ledState;
+        UARTSend((uint8_t *)"alerta", 6);
         GPIOPinWrite(GPIO_PORTE_BASE, GPIO_PIN_5, ledState ? GPIO_PIN_5 : 0);
     }
     else{
@@ -156,9 +157,12 @@ uint32_t bufferIndex = 0;
 char receivedChar;
 uint32_t contador = 0;
 uint32_t direccion;
+uint32_t valor;
 void UARTIntHandler(void)
 {
     uint32_t ui32Status;
+    int numLength = 0;     // Variable para almacenar el número de dígitos del número recibido
+    int contadorLength = 0; // Variable para almacenar el número de dígitos del contador
 
     //
     // Get the interrrupt status.
@@ -189,6 +193,11 @@ void UARTIntHandler(void)
             buffer[bufferIndex] = '\0'; // Asegúrate de que el string esté terminado
             // Si recibimos un salto de línea o un espacio (indicador de fin de palabra)
                 // Comprobar si la palabra recibida es "adelante"
+            if (isdigit(receivedChar)) {
+                // Convertir la cadena a entero usando atoi
+                contador = contador * 10 + (receivedChar - '0'); 
+                numLength++;  // Increment the count of numeric characters
+            }
             if (strcmp(buffer, "adelante") == 0) {
                 direccion = 1; // Asignar 1 si la palabra es "adelante"
             }
@@ -204,12 +213,44 @@ void UARTIntHandler(void)
             else if (strcmp(buffer, "izquier") == 0) {
                 direccion = 4; // Asignar 1 si la palabra es "adelante"
             }
-            // Si se recibe un salto de línea, convertir a entero
-            else if (isdigit(receivedChar)) {
-                // Convertir la cadena a entero usando atoi
-                contador = contador * 10 + (receivedChar - '0'); 
+            else if (strcmp(buffer, "dder") == 0) {
+                direccion = 5; // Asignar 1 si la palabra es "adelante"
             }
+            else if (strcmp(buffer, "iizq") == 0) {
+                direccion = 6; // Asignar 1 si la palabra es "adelante"
+            }
+            else if (strcmp(buffer, "ader") == 0) {
+                direccion = 7; // Asignar 1 si la palabra es "adelante"
+            }
+            else if (strcmp(buffer, "aizq") == 0) {
+                direccion = 8; // Asignar 1 si la palabra es "adelante"
+            }
+            else if (strcmp(buffer, "bder") == 0) {
+                direccion = 9; // Asignar 1 si la palabra es "adelante"
+            }
+            else if (strcmp(buffer, "bizq") == 0) {
+                direccion = 10; // Asignar 1 si la palabra es "adelante"
+            }
+            else if (strcmp(buffer, "gder") == 0) {
+                direccion = 11; // Asignar 1 si la palabra es "adelante"
+            }
+            else if (strcmp(buffer, "gizq") == 0) {
+                direccion = 12; // Asignar 1 si la palabra es "adelante"
+            }
+            // Si se recibe un salto de línea, convertir a entero
+            
         }
+    }
+    int tempContador = contador;
+    do
+    {
+        contadorLength++;       // Incrementa la longitud del contador
+        tempContador /= 10;     // Divide el número entre 10 para remover el último dígito
+    } while (tempContador != 0);
+    if (numLength == contadorLength)
+    {
+        // Si las longitudes coinciden, puedes tomar alguna acción
+        valor = contador;
     }
 }
 
@@ -615,7 +656,7 @@ main(void)
     configura_TIMER1();
     while(1)
     {
-        dutyCycle = (float)contador/100;
+        dutyCycle = (float)valor/100;
         distancia();
         if(distance <= 7){
             direccion = 0;
@@ -683,8 +724,77 @@ main(void)
             PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_1) * dutyCycle));
             PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_0) * dutyCycle * 0.2));
         }
-        //IntToChar(distance, buffer4);
-        //UARTSend((uint8_t *)buffer4, strlen(buffer4));
-        //UARTSend((uint8_t *)"\n", 1); 
+        else if (direccion == 5){
+            GPIOPinWrite(GPIO_PORTL_BASE, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, 0|GPIO_PIN_1|GPIO_PIN_2|0);
+            GPIOPinWrite(GPIO_PORTK_BASE, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, GPIO_PIN_0|0|0|GPIO_PIN_3);
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_4, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_2) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_1) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_1) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_0) * dutyCycle));
+
+        }
+        else if (direccion == 6){
+            GPIOPinWrite(GPIO_PORTL_BASE, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, GPIO_PIN_0|0|0|GPIO_PIN_3);
+            GPIOPinWrite(GPIO_PORTK_BASE, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, 0|GPIO_PIN_1|GPIO_PIN_2|0);
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_4, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_2) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_1) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_1) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_0) * dutyCycle));
+
+        }
+        else if (direccion == 7){
+            GPIOPinWrite(GPIO_PORTL_BASE, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, 0|0|GPIO_PIN_2|0);
+            GPIOPinWrite(GPIO_PORTK_BASE, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, GPIO_PIN_0|0|0|0);
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_4, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_2) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_1) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_1) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_0) * dutyCycle));
+
+        }     
+        else if (direccion == 8){
+            GPIOPinWrite(GPIO_PORTL_BASE, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, GPIO_PIN_0|0|0|0);
+            GPIOPinWrite(GPIO_PORTK_BASE, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, 0|0|GPIO_PIN_2|0);
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_4, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_2) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_1) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_1) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_0) * dutyCycle));
+
+        } 
+        else if (direccion == 9){
+            GPIOPinWrite(GPIO_PORTL_BASE, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, 0|GPIO_PIN_1|0|0);
+            GPIOPinWrite(GPIO_PORTK_BASE, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, 0|0|0|GPIO_PIN_3);
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_4, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_2) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_1) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_1) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_0) * dutyCycle));
+
+        } 
+        else if (direccion == 10){
+            GPIOPinWrite(GPIO_PORTL_BASE, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, 0|0|0|GPIO_PIN_3);
+            GPIOPinWrite(GPIO_PORTK_BASE, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, 0|GPIO_PIN_1|0|0);
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_4, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_2) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_1) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_1) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_0) * dutyCycle));
+
+        } 
+        else if (direccion == 11){
+            GPIOPinWrite(GPIO_PORTL_BASE, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, 0|GPIO_PIN_1|GPIO_PIN_2|0);
+            GPIOPinWrite(GPIO_PORTK_BASE, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, 0|GPIO_PIN_1|GPIO_PIN_2|0);
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_4, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_2) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_1) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_1) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_0) * dutyCycle));
+
+        } 
+        else if (direccion == 12){
+            GPIOPinWrite(GPIO_PORTL_BASE, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, GPIO_PIN_0|0|0|GPIO_PIN_3);
+            GPIOPinWrite(GPIO_PORTK_BASE, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3, GPIO_PIN_0|0|0|GPIO_PIN_3);
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_4, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_2) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_1) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_1) * dutyCycle));
+            PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_0) * dutyCycle));
+
+        } 
     }
 }
