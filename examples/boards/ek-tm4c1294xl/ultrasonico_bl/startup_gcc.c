@@ -38,13 +38,19 @@ static void IntDefaultHandler(void);
 
 //*****************************************************************************
 //
+// External declarations for the interrupt handlers used by the application.
+//
+//*****************************************************************************
+//extern void IntGPIOa(void);
+extern void EchoIntHandler(void);
+extern void UART6IntHandler(void);
+//extern void IntGPIOc(void);
+
+//*****************************************************************************
+//
 // The entry point for the application.
 //
 //*****************************************************************************
-extern void UARTIntHandler(void);
-//extern void UART7IntHandler(void);
-extern void EchoIntHandler(void);
-extern void Timer1IntHandler(void);
 extern int main(void);
 
 //*****************************************************************************
@@ -80,12 +86,12 @@ void (* const g_pfnVectors[])(void) =
     0,                                      // Reserved
     IntDefaultHandler,                      // The PendSV handler
     IntDefaultHandler,                      // The SysTick handler
-    IntDefaultHandler,                      // GPIO Port A
-    EchoIntHandler,                      // GPIO Port B
-    IntDefaultHandler,                      // GPIO Port C
+//    IntGPIOa,                               // GPIO Port A
+    EchoIntHandler,                               // GPIO Port B
+//    IntGPIOc,                               // GPIO Port C
     IntDefaultHandler,                      // GPIO Port D
     IntDefaultHandler,                      // GPIO Port E
-    UARTIntHandler,                      // UART0 Rx and Tx
+    IntDefaultHandler,                      // UART0 Rx and Tx
     IntDefaultHandler,                      // UART1 Rx and Tx
     IntDefaultHandler,                      // SSI0 Rx and Tx
     IntDefaultHandler,                      // I2C0 Master and Slave
@@ -101,7 +107,7 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // Watchdog timer
     IntDefaultHandler,                      // Timer 0 subtimer A
     IntDefaultHandler,                      // Timer 0 subtimer B
-    Timer1IntHandler,                       // Timer 1 subtimer A
+    IntDefaultHandler,                      // Timer 1 subtimer A
     IntDefaultHandler,                      // Timer 1 subtimer B
     IntDefaultHandler,                      // Timer 2 subtimer A
     IntDefaultHandler,                      // Timer 2 subtimer B
@@ -139,8 +145,8 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // UART3 Rx and Tx
     IntDefaultHandler,                      // UART4 Rx and Tx
     IntDefaultHandler,                      // UART5 Rx and Tx
-    IntDefaultHandler,                      // UART6 Rx and Tx
-    //UARTIntHandler,                      // UART7 Rx and Tx
+    UART6IntHandler,                      // UART6 Rx and Tx
+    IntDefaultHandler,                      // UART7 Rx and Tx
     IntDefaultHandler,                      // I2C2 Master and Slave
     IntDefaultHandler,                      // I2C3 Master and Slave
     IntDefaultHandler,                      // Timer 4 subtimer A

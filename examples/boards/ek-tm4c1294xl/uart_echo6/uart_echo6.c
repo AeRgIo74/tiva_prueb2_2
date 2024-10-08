@@ -23,17 +23,12 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
-//*****************************************************************************
-//
-// The variable g_ui32SysClock contains the system clock frequency in Hz.
-//
-//*****************************************************************************
+
+
+// System clock rate in Hz.
 uint32_t g_ui32SysClock;
-//*****************************************************************************
-//
+
 // The error routine that is called if the driver library encounters an error.
-//
-//*****************************************************************************
 #ifdef DEBUG
 void
 __error__(char *pcFilename, uint32_t ui32Line)
@@ -42,11 +37,12 @@ __error__(char *pcFilename, uint32_t ui32Line)
 #endif
 
 
-////// ultrasonico
+
+
+
 uint32_t distance;
 uint32_t start_time, end_time;
 volatile bool echo_received = false;
-
 
 // ISR para capturar los eventos de la señal Echo
 void EchoIntHandler(void)
@@ -69,7 +65,7 @@ void EchoIntHandler(void)
     }
 }
 
-/// configuracion de pines
+/// Configuración de pines
 void config_ultrasonic(void){
     // Configurar Trigger y Echo
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
@@ -85,21 +81,32 @@ void config_ultrasonic(void){
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
     TimerConfigure(TIMER0_BASE, TIMER_CFG_ONE_SHOT_UP);
 }
+
 void distancia(void){
     // Generar pulso de Trigger
     GPIOPinWrite(GPIO_PORTB_BASE, GPIO_PIN_5, GPIO_PIN_5);
     SysCtlDelay(g_ui32SysClock / (1000000 * 3));  // Delay 10 us
     GPIOPinWrite(GPIO_PORTB_BASE, GPIO_PIN_5, 0);
 
-        // Esperar hasta que se reciba la señal Echo
+    // Esperar hasta que se reciba la señal Echo
     while (!echo_received);
 
-        // Calcular la distancia en cm
+    // Calcular la distancia en cm
     uint32_t time_diff = end_time - start_time;
-    distance = ((time_diff/120) * 0.034) / 2;  // Usar la fórmula de la velocidad del sonido
+    distance = ((time_diff / 120) * 0.034) / 2;  // Usar la fórmula de la velocidad del sonido
     echo_received = false;
 }
-// Variable para almacenar el estado del LED
+
+
+
+void configura_TIMER1(void){
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
+    TimerConfigure(TIMER1_BASE, TIMER_CFG_PERIODIC);
+    TimerLoadSet(TIMER1_BASE, TIMER_A, g_ui32SysClock * 2);
+    IntEnable(INT_TIMER1A);
+    TimerIntEnable(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
+    TimerEnable(TIMER1_BASE, TIMER_A);
+}
 volatile bool ledState = false;
 void Timer1IntHandler(void)
 {
@@ -121,32 +128,61 @@ void Timer1IntHandler(void)
 
 //*****************************************************************************
 //
-// Configure the UART and its pins. This must be called before UARTprintf.
+// The UART interrupt handler.
 //
 //*****************************************************************************
-//*****************************************************************************
-// The UART interrupt handler.
-//*****************************************************************************
+void UARTConfig(void){
+    // Configurar UART para mostrar los datos en la consola
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART6);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOP);
+    GPIOPinConfigure(GPIO_PP0_U6RX);
+    GPIOPinConfigure(GPIO_PP1_U6TX);
+    GPIOPinTypeUART(GPIO_PORTP_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+    UARTConfigSetExpClk(UART6_BASE, g_ui32SysClock, 9600,
+                            (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
+                             UART_CONFIG_PAR_NONE));
+
+    
+    
+}
+void interrupcio_UART(void){
+    // Habilitar interrupciones UART
+    IntEnable(INT_UART6);
+    UARTIntEnable(UART6_BASE, UART_INT_RX | UART_INT_RT);
+}
 #define BUFFER_SIZE 128
 char buffer[BUFFER_SIZE];
 uint32_t bufferIndex = 0;
 char receivedChar;
 uint32_t contador = 0;
 uint32_t direccion;
-
-void UARTIntHandler(void) {
+void UARTIntHandler(void)
+{
     uint32_t ui32Status;
-    ui32Status = UARTIntStatus(UART0_BASE, true);
-    UARTIntClear(UART0_BASE, ui32Status);
 
+    //
+    // Get the interrrupt status.
+    //
+    ui32Status = UARTIntStatus(UART6_BASE, true);
+
+    //
+    // Clear the asserted interrupts.
+    //
+    UARTIntClear(UART6_BASE, ui32Status);
+
+    //
+    // Loop while there are characters in the receive FIFO.
+    //
     // Reiniciar el índice del buffer
     bufferIndex = 0;
     memset(buffer, 0, BUFFER_SIZE);  // Limpiar el buffer
     contador = 0;
-    UARTprintf("Buffer recibido\n");
-    while (UARTCharsAvail(UART0_BASE)) {
-        receivedChar = UARTCharGetNonBlocking(UART0_BASE);
-        
+    while(UARTCharsAvail(UART6_BASE))
+    {
+        //
+        // Read the next character from the UART and write it back to the UART.
+        //
+        receivedChar = UARTCharGetNonBlocking(UART6_BASE);
         // Solo almacenar si hay espacio en el buffer
         if (bufferIndex < BUFFER_SIZE - 1) {
             buffer[bufferIndex++] = receivedChar; // Almacena el carácter
@@ -174,46 +210,107 @@ void UARTIntHandler(void) {
                 contador = contador * 10 + (receivedChar - '0'); 
             }
         }
-        
-        UARTCharPutNonBlocking(UART0_BASE, receivedChar);
     }
 }
-void ConfigureUART(void)
+
+void UARTSend(const uint8_t *pui8Buffer, uint32_t ui32Count)
 {
     //
-    // Enable the GPIO Peripheral used by the UART.
+    // Loop while there are more characters to send.
     //
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
-
-    //
-    // Enable UART0.
-    //
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
-
-    //
-    // Configure GPIO Pins for UART mode.
-    //
-    GPIOPinConfigure(GPIO_PA0_U0RX);
-    GPIOPinConfigure(GPIO_PA1_U0TX);
-    GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
-
-    //
-    // Initialize the UART for console I/O.
-    //
-    UARTStdioConfig(0, 9600, g_ui32SysClock);
-}
-void interrupcio_UART(void){
-    // Habilitar interrupciones UART
-    IntEnable(INT_UART0);
-    UARTIntEnable(UART0_BASE, UART_INT_RX | UART_INT_RT);
-}
-void UARTSend(const uint8_t *pui8Buffer, uint32_t ui32Count) {
-    // Enviar los caracteres por UART
-    while (ui32Count--) {
-        UARTCharPutNonBlocking(UART0_BASE, *pui8Buffer++);
+    while(ui32Count--)
+    {
+        //
+        // Write the next character to the UART.
+        //
+        UARTCharPutNonBlocking(UART6_BASE, *pui8Buffer++);
     }
 }
 
+void IntToChar(uint32_t value, char *buffer) {
+    int i = 0;
+    int j;
+    char temp;
+
+    // Manejar el caso de valor 0
+    if (value == 0) {
+        buffer[i++] = '0';
+        buffer[i] = '\0'; // Terminar cadena
+        return;
+    }
+
+    // Extraer cada dígito del número
+    while (value > 0) {
+        buffer[i++] = (value % 10) + '0';  // Convertir el dígito a su valor ASCII
+        value /= 10;
+    }
+
+    // Terminar cadena
+    buffer[i] = '\0';
+
+    // Invertir la cadena porque los dígitos están al revés
+    for (j = 0; j < i / 2; j++) {
+        temp = buffer[j];
+        buffer[j] = buffer[i - j - 1];
+        buffer[i - j - 1] = temp;
+    }
+}
+void FloatToChar(float value, char *buffer, int decimalPlaces) {
+    int i = 0;
+
+    // Manejar el caso de valor 0
+    if (value == 0.0f) {
+        buffer[i++] = '0';
+        buffer[i] = '\0'; // Terminar cadena
+        return;
+    }
+
+    // Manejar números negativos
+    if (value < 0.0f) {
+        buffer[i++] = '-';
+        value = -value; // Hacer el valor positivo
+    }
+
+    // Obtener la parte entera
+    uint32_t intPart = (uint32_t)value;
+    float fracPart = value - intPart;
+
+    // Extraer cada dígito de la parte entera
+    char intBuffer[12]; // Buffer temporal para la parte entera
+    int intIndex = 0;
+
+    while (intPart > 0) {
+        intBuffer[intIndex++] = (intPart % 10) + '0';  // Convertir el dígito a su valor ASCII
+        intPart /= 10;
+    }
+
+    // Invertir la parte entera en el buffer
+    for (int j = 0; j < intIndex / 2; j++) {
+        char temp = intBuffer[j];
+        intBuffer[j] = intBuffer[intIndex - j - 1];
+        intBuffer[intIndex - j - 1] = temp;
+    }
+
+    // Agregar la parte entera al buffer principal
+    for (int j = 0; j < intIndex; j++) {
+        buffer[i++] = intBuffer[j];
+    }
+
+    // Agregar la parte decimal
+    buffer[i++] = '.'; // Agregar el punto decimal
+
+    // Extraer y agregar los dígitos de la parte decimal
+    for (int j = 0; j < decimalPlaces; j++) {
+        fracPart *= 10.0f;
+        int digit = (int)fracPart;
+        buffer[i++] = digit + '0'; // Convertir el dígito a su valor ASCII
+        fracPart -= digit; // Mantener la parte decimal restante
+    }
+
+    // Terminar cadena
+    buffer[i] = '\0';
+}
+///GPIOS
 void GPIO_K(void){
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOK);
     GPIOPinTypeGPIOOutput(GPIO_PORTK_BASE, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3);
@@ -235,19 +332,7 @@ void buzzer_E(void){
     GPIOPinTypeGPIOOutput(GPIO_PORTE_BASE, GPIO_PIN_5);
 }
 
-
-void configura_TIMER1(void){
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
-    TimerConfigure(TIMER1_BASE, TIMER_CFG_PERIODIC);
-    TimerLoadSet(TIMER1_BASE, TIMER_A, g_ui32SysClock * 2);
-    IntEnable(INT_TIMER1A);
-    TimerIntEnable(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
-    TimerEnable(TIMER1_BASE, TIMER_A);
-}
-// Configure PWM for a 25% duty cycle signal running at 250Hz.
-//
-//*****************************************************************************
-
+///PWM
 void ConfigurePWM_G0(void)
 {
     uint32_t ui32PWMClockRate;
@@ -477,182 +562,60 @@ void ConfigurePWM_F1(void)
     PWMGenEnable(PWM0_BASE, PWM_GEN_0);
 }
 
-// Configuración del ADC y sus pines
-void ConfigureADC(void) {
-    // Habilitar periféricos
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0); // Habilitar ADC0
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE); // Habilitar GPIOE
 
-    // Configurar el pin PE3 como entrada ADC (Canal 0)
-    GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_3); // Configura PE3 como entrada del ADC
-    // Configurar el ADC 
-    ADCSequenceConfigure(ADC0_BASE, 0, ADC_TRIGGER_PROCESSOR, 0); // Secuencia 0
-    ADCSequenceStepConfigure(ADC0_BASE, 0, 0, ADC_CTL_IE | ADC_CTL_END | ADC_CTL_CH0); // Canal 0
-    ADCSequenceEnable(ADC0_BASE, 0); // Habilitar secuencia 0
-    ADCIntClear(ADC0_BASE, 0); // Limpiar interrupción
-}
-// Función para convertir un número entero en una cadena de caracteres
-void IntToChar(uint32_t value, char *buffer) {
-    int i = 0;
-    int j;
-    char temp;
-
-    // Manejar el caso de valor 0
-    if (value == 0) {
-        buffer[i++] = '0';
-        buffer[i] = '\0'; // Terminar cadena
-        return;
-    }
-
-    // Extraer cada dígito del número
-    while (value > 0) {
-        buffer[i++] = (value % 10) + '0';  // Convertir el dígito a su valor ASCII
-        value /= 10;
-    }
-
-    // Terminar cadena
-    buffer[i] = '\0';
-
-    // Invertir la cadena porque los dígitos están al revés
-    for (j = 0; j < i / 2; j++) {
-        temp = buffer[j];
-        buffer[j] = buffer[i - j - 1];
-        buffer[i - j - 1] = temp;
-    }
-}
-
-// Función para convertir un número flotante en una cadena de caracteres
-void FloatToChar(float value, char *buffer, int decimalPlaces) {
-    int i = 0;
-
-    // Manejar el caso de valor 0
-    if (value == 0.0f) {
-        buffer[i++] = '0';
-        buffer[i] = '\0'; // Terminar cadena
-        return;
-    }
-
-    // Manejar números negativos
-    if (value < 0.0f) {
-        buffer[i++] = '-';
-        value = -value; // Hacer el valor positivo
-    }
-
-    // Obtener la parte entera
-    uint32_t intPart = (uint32_t)value;
-    float fracPart = value - intPart;
-
-    // Extraer cada dígito de la parte entera
-    char intBuffer[12]; // Buffer temporal para la parte entera
-    int intIndex = 0;
-
-    while (intPart > 0) {
-        intBuffer[intIndex++] = (intPart % 10) + '0';  // Convertir el dígito a su valor ASCII
-        intPart /= 10;
-    }
-
-    // Invertir la parte entera en el buffer
-    for (int j = 0; j < intIndex / 2; j++) {
-        char temp = intBuffer[j];
-        intBuffer[j] = intBuffer[intIndex - j - 1];
-        intBuffer[intIndex - j - 1] = temp;
-    }
-
-    // Agregar la parte entera al buffer principal
-    for (int j = 0; j < intIndex; j++) {
-        buffer[i++] = intBuffer[j];
-    }
-
-    // Agregar la parte decimal
-    buffer[i++] = '.'; // Agregar el punto decimal
-
-    // Extraer y agregar los dígitos de la parte decimal
-    for (int j = 0; j < decimalPlaces; j++) {
-        fracPart *= 10.0f;
-        int digit = (int)fracPart;
-        buffer[i++] = digit + '0'; // Convertir el dígito a su valor ASCII
-        fracPart -= digit; // Mantener la parte decimal restante
-    }
-
-    // Terminar cadena
-    buffer[i] = '\0';
-}
-// Variable para almacenar el valor leído del ADC
-uint32_t ui32ADCValue;
 float dutyCycle;
 //*****************************************************************************
 //
-// Main function.
+// This example demonstrates how to send a string of data to the UART.
 //
 //*****************************************************************************
-int main(void)
+int
+main(void)
 {
     //
     // Run from the PLL at 120 MHz.
+    // Note: SYSCTL_CFG_VCO_240 is a new setting provided in TivaWare 2.2.x and
+    // later to better reflect the actual VCO speed due to SYSCTL#22.
     //
     g_ui32SysClock = SysCtlClockFreqSet((SYSCTL_XTAL_25MHZ |
                                              SYSCTL_OSC_MAIN |
                                              SYSCTL_USE_PLL |
                                              SYSCTL_CFG_VCO_240), 120000000);
 
+
     //
-     //
     // Enable processor interrupts.
     //
     IntMasterEnable();
-    // Initialize the UART.
-    //
-    ConfigureUART();
+
+    UARTConfig(),
+
     interrupcio_UART();
-    // Display the setup on the console.
     //
-    UARTprintf("PWM ->\n");
-    UARTprintf("  Module: PWM2\n");
-    UARTprintf("  Pin: PF2\n");
-    UARTprintf("  Initial Duty Cycle: 0%%\n");
-    UARTprintf("  Increasing Duty Cycle from 0%% to 100%%\n\n");
-    UARTprintf("Generating PWM on PWM2 (PF2) -> State = ");
+    // Prompt for text to be entered.
+    //
+    UARTSend((uint8_t *)"\033[2JEnter text: ", 16);
 
     //
-    // Configure the PWM.
+    // Loop forever echoing data through the UART.
     //
+    //ultrasonic
+    config_ultrasonic();
+    ///pwm
     ConfigurePWM_F1();
     ConfigurePWM_F2();
     ConfigurePWM_F3();
     ConfigurePWM_G0();
-    ConfigureADC();
+    ///gpios
     GPIO_L();
     GPIO_K();
-    config_ultrasonic();
     user_led_F();
     user_led_N();
     buzzer_E();
     configura_TIMER1();
-    //
-    // Loop forever while the PWM signals are generated.
-    //
-    char buffer[10];  // Buffer para almacenar la conversión del número a cadena
-    char buffer2[20];
-    char buffer3[10];
-    char buffer4[10];
-    while (1)
+    while(1)
     {
-        ADCProcessorTrigger(ADC0_BASE, 0);
-        // Esperar hasta que se complete la conversión ADC
-        while (!ADCIntStatus(ADC0_BASE, 0, false)) {}
-
-        // Limpiar la bandera de interrupción del ADC
-        ADCIntClear(ADC0_BASE, 0);
-
-        // Obtener el valor del ADC
-        ADCSequenceDataGet(ADC0_BASE, 0, &ui32ADCValue);
-
-        // Ajustar el valor leído al límite de 10 bits
-        dutyCycle = (float)ui32ADCValue/4096;
-        // if (dutyCycle <= 0.003){
-        //     dutyCycle = 0;
-        // }
-        // Set the PWM pulse width based on the duty cycle.
+        dutyCycle = (float)contador/100;
         distancia();
         if(distance <= 7){
             direccion = 0;
@@ -720,25 +683,8 @@ int main(void)
             PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_1) * dutyCycle));
             PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1, (PWMGenPeriodGet(PWM0_BASE, PWM_GEN_0) * dutyCycle * 0.2));
         }
-        
-
-        IntToChar(ui32ADCValue, buffer);
-        FloatToChar(dutyCycle, buffer2, 4); // Convierte a string con 2 decimales
-        IntToChar(direccion, buffer3);
-        IntToChar(distance, buffer4);
-        // Enviar la cadena por UART
-        // UARTSend((uint8_t *)buffer, strlen(buffer));
-        // UARTSend((uint8_t *)"   ", 3);  // Enviar salto de línea para formatear la salida
-        // UARTSend((uint8_t *)buffer2, strlen(buffer2));
-        // UARTSend((uint8_t *)"   ", 3);  // Enviar salto de línea para formatear la salida
-        // UARTSend((uint8_t *)buffer3, strlen(buffer3));
-        // UARTSend((uint8_t *)"\n", 1);  // Enviar salto de línea para formatear la salida
-        UARTSend((uint8_t *)buffer4, strlen(buffer4));
-        UARTSend((uint8_t *)"\n", 1);  // Enviar salto de línea para formatear la 
-        //UART7Send((uint8_t *)buffer4, strlen(buffer4));
-        //UART7Send((uint8_t *)"\n", 1);  // Enviar salto de línea para formatear la salida
-        
-        // Introducir un retardo de 1 segundo
-        SysCtlDelay((g_ui32SysClock / 3)*0.5); // Aproximadamente 1 segundo
+        //IntToChar(distance, buffer4);
+        //UARTSend((uint8_t *)buffer4, strlen(buffer4));
+        //UARTSend((uint8_t *)"\n", 1); 
     }
 }
